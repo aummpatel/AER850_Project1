@@ -1,19 +1,42 @@
+# Importing required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sbn  
 
 # Step 1: Data Processing
-import pandas as pd
-data = pd.read_csv("Project 1 Data.csv")
-print(data.columns)
-
-#Defining x and y variables to distinguish between target and feature variables
-x = data[['X','Y','Z']]
-y = data['Step']
+# Read the .csv into a DataForm variable
+df= pd.read_csv("Project 1 Data.csv")
 
 # Data Splitting before proceeding to next step in order to aviod any data snooping
-import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit as sss
-# Define the parameters of the splitter and perform a 20-80 split of the data
+
+# Define the parameters of the splitter to perform a 20-80 split of the data
 splitter= sss(n_splits=1,test_size=0.2,random_state=42)
 
-for train_index, test_index in splitter.split(x,y):
-    x_train, x_test = x[train_index], x[test_index]
-    y_train, y_test = y[train_index], y[test_index]
+# Stratification on 'Step' ensures that the proportion of each step is preserved in both datasets
+for train_index, test_index in splitter.split(df,df['Step']):
+    train_df = df.loc[train_index].reset_index(drop=True)
+    test_df = df.loc[test_index].reset_index(drop=True)
+
+# Step 2: Data Visualization
+
+# Histogram of 'Step' showing class distribution of the training dataset
+plt.hist(train_df['Step'],bins=13,edgecolor='black')
+plt.xlabel("Step number")
+plt.ylabel("Frequency")
+plt.title("Distribution of Data points per Step (Training Data)")
+plt.show()
+
+# Scatter plots of all coordinates with Step Numbers
+fig, axes = plt.subplots(3, 1,layout='constrained')
+axes[0].scatter(train_df['Step'], train_df['X'], edgecolors="black", color="red")
+axes[0].set_ylabel("X Coordinate")
+axes[0].set_title("Scatter Plot of Coordinates vs Step Number")
+axes[1].scatter(train_df['Step'], train_df['Y'], edgecolors="black", color="cyan")
+axes[1].set_ylabel("Y Coordinate")
+axes[2].scatter(train_df['Step'], train_df['Z'], edgecolors="black", color="yellow")
+axes[2].set_xlabel("Step Number")
+axes[2].set_ylabel("Z Coordinate")
+plt.show()
+	
