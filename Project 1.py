@@ -39,4 +39,24 @@ axes[2].scatter(train_df['Step'], train_df['Z'], edgecolors="black", color="yell
 axes[2].set_xlabel("Step Number")
 axes[2].set_ylabel("Z Coordinate")
 plt.show()
-	
+
+# Step 3: Correlation Analysis
+
+corr_matrix = train_df.corr(method='pearson')
+print("Correlation Matrix:\n", corr_matrix,"\n")
+sbn.heatmap(np.abs(corr_matrix))
+plt.title('Pearson Correlation Heatmap')
+plt.show()
+
+# Step 4: Classification Model Development
+
+# Step 5: Model Performance Analysis
+
+# Step 6: Stacked Model Performance
+
+# Step 7: Model Evaluation
+
+
+
+
+
