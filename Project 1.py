@@ -45,7 +45,7 @@ plt.show()
 # Step 3: Correlation Analysis
 
 corr_matrix = train_df.corr(method='pearson')
-print("Correlation Matrix:\n", corr_matrix,"\n")
+print("\nCorrelation Matrix:\n\n", corr_matrix,"\n")
 sbn.heatmap(np.abs(corr_matrix))
 plt.title('Pearson Correlation Heatmap')
 plt.show()
@@ -70,9 +70,10 @@ X_test = test_df[['X','Y','Z']]
 y_train = train_df['Step']
 y_test = test_df['Step']
 
-# Model 1 - Support Vector Machine Classifier (GridSearch Optimized)
+# Model 1 - Support Vector Machine Classifier (GridSearch CV)
+
 # SVC Model Pipeline
-pipesvc = Pipeline([
+pipe1 = Pipeline([
         ('scaler', StandardScaler()),
         ('clf', SVC(probability=True, random_state=42))
         ])
@@ -86,24 +87,105 @@ param_grid_clf1 = {
         }
     
 # GridSearch Cross-Validation using f1_macro as the scoring metric to determine the best hyperparameters
-gs_clf1 = GridSearchCV(pipesvc,param_grid_clf1,scoring='f1_macro',cv=5,n_jobs=-1)
+gs_clf1 = GridSearchCV(pipe1,param_grid_clf1,scoring='f1_macro',cv=5,n_jobs=-1)
+
 # Running grid search on training data
 gs_clf1.fit(X_train,y_train)
-
-print("Best Parameters for SVC:", gs_clf1.best_params_)
-print("Best Cross-Validation F1 Score:", gs_clf1.best_score_)
+print("Best Parameters for SVC:", gs_clf1.best_params_,"\n")
+print("Best Cross-Validation F1 Score (SVM):", gs_clf1.best_score_)
 
 clf1 = gs_clf1.best_estimator_
 print("SVM Training Accuracy:", clf1.score(X_train,y_train))
-print("SVM Training Accuracy:", clf1.score(X_test,y_test))
+print("SVM Test Accuracy:", clf1.score(X_test,y_test),"\n")
 
-    
-    # Model 2 - Random Forest Classifier (GridSearch Optimized)
-    
-    # Model 3 - Decision Tree Classifier (GridSearch Optimized)
-    
-    # Model 4 - Logistic Regression Classifier (RandomizedSearch Optimized)
-    
+# Model 2 - Logistic Regression Classifier (GridSearch CV)
+
+# LR Model Pipeline
+pipe2 = Pipeline([
+        ("scaler", StandardScaler()),
+        ("clf", LogisticRegression(max_iter=2500,random_state=42))
+    ])
+param_grid_clf2 =  {
+        'clf__C': [0.1,0.5,1,5,10],
+        'clf__solver': ['lbfgs','newton-cg'],
+        'clf__class_weight': [None,'balanced']
+        }
+# GridSearch Call
+gs_clf2 = GridSearchCV(pipe2,param_grid_clf2,scoring='f1_macro',cv=5,n_jobs=-1)
+
+# Running GridSearch on training data
+gs_clf2.fit(X_train,y_train)
+print("Best Parameters for LR model:", gs_clf2.best_params_,"\n")
+print("Best Cross-Validation F1 Score (LR):", gs_clf2.best_score_)
+
+clf2 = gs_clf2.best_estimator_
+print("LR Training Accuracy:", clf2.score(X_train,y_train))
+print("LR Test Accuracy:", clf2.score(X_test,y_test),"\n")
+
+# Model 3 - Decision Tree Classifier (GridSearch CV)
+
+# Pipeline
+pipe3 = DecisionTreeClassifier(random_state=42)
+
+# Parameter Grid
+param_grid_clf3 = {
+        'max_depth': [None,3,7,10],
+        'min_samples_split': [2,5,10,20],
+        'min_samples_leaf' : [1,2,4,8],
+        'criterion': ['gini', 'entropy','log_loss'],
+        'max_features': [None,'sqrt', 'log2'],
+        'class_weight': [None,'balanced']
+        }
+# GridSearch Call
+gs_clf3 = GridSearchCV(pipe3,param_grid_clf3,scoring='f1_macro',cv=5,n_jobs=-1)
+
+# Running GridSearch on training data
+gs_clf3.fit(X_train,y_train)
+print("Best Parameters for DT model:", gs_clf3.best_params_,"\n")
+print("Best Cross-Validation F1 Score (DT):", gs_clf3.best_score_)
+
+# Save the best model with the optimal hyperparameters
+clf3 = gs_clf3.best_estimator_
+
+# Best Model accuracy score
+print("DT Training Accuracy:", clf3.score(X_train,y_train))
+print("DT Test Accuracy:", clf3.score(X_test,y_test),"\n")
+
+# Model 4 - Random Forest Classifier (RandomizedSearch CV)
+from scipy.stats import randint
+
+# Pipeline
+pipe4 = RandomForestClassifier(random_state=42)
+
+# Parameter Grid
+param_rand_clf4 = {
+    'n_estimators': randint(100,500),
+    'max_depth': randint(5,15),
+    'min_samples_split': randint(2,20),
+    'min_samples_leaf': randint(1,8),
+    'max_features': [None,'sqrt', 'log2'],
+    'criterion': ['gini','entropy'],
+    'class_weight': [None,'balanced']
+    }
+
+# RandomizedSearch Call
+rs_clf4 = RandomizedSearchCV(pipe4,param_rand_clf4,scoring='f1_macro',
+                             n_iter=40,cv=5,n_jobs=-1,random_state=42)
+
+# Running GridSearch on training data
+rs_clf4.fit(X_train,y_train)
+
+# Display Results
+print("Best Parameters for RF model:", rs_clf4.best_params_,"\n")
+print("Best Cross-Validation F1 Score (RF):", rs_clf4.best_score_)
+
+# Save the best model with the optimal hyperparameters
+clf4 = rs_clf4.best_estimator_
+
+# Best Model accuracy score
+print("RF Training Accuracy:", clf4.score(X_train,y_train))
+print("RF Test Accuracy:", clf4.score(X_test,y_test),"\n")
+
 
 # Step 5: Model Performance Analysis
 
