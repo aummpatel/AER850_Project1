@@ -131,9 +131,9 @@ pipe3 = DecisionTreeClassifier(random_state=42)
 param_grid_clf3 = {
         'max_depth': [None,3,7,10],
         'min_samples_split': [2,5,10,20],
-        'min_samples_leaf' : [1,2,4,8],
-        'criterion': ['gini', 'entropy','log_loss'],
-        'max_features': [None,'sqrt', 'log2'],
+        # 'min_samples_leaf' : [1,2,4,8],
+        # 'criterion': ['gini', 'entropy','log_loss'],
+        # 'max_features': [None,'sqrt', 'log2'],
         'class_weight': [None,'balanced']
         }
 # GridSearch Call
@@ -159,12 +159,12 @@ pipe4 = RandomForestClassifier(random_state=42)
 
 # Parameter Grid
 param_rand_clf4 = {
-    'n_estimators': randint(100,500),
+    'n_estimators': randint(100,400),
     'max_depth': randint(5,15),
     'min_samples_split': randint(2,20),
-    'min_samples_leaf': randint(1,8),
-    'max_features': [None,'sqrt', 'log2'],
-    'criterion': ['gini','entropy'],
+    # 'min_samples_leaf': randint(1,8),
+    # 'max_features': [None,'sqrt', 'log2'],
+    # 'criterion': ['gini','entropy'],
     'class_weight': [None,'balanced']
     }
 
@@ -186,14 +186,96 @@ clf4 = rs_clf4.best_estimator_
 print("RF Training Accuracy:", clf4.score(X_train,y_train))
 print("RF Test Accuracy:", clf4.score(X_test,y_test),"\n")
 
-
+# Summarize the models
+models = {
+    "SVC": clf1,
+    "Logistic Regression": clf2,
+    "Decision Tree": clf3,
+    "Random Forest": clf4
+    }
 # Step 5: Model Performance Analysis
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import confusion_matrix
+
+results = []
+labels = sorted(y_test.unique())
+for name, model in models.items():
+    y_pred = model.predict(X_test)
+    
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test,y_pred,average='macro')
+    rec = recall_score(y_test, y_pred,average='macro')
+    f1 = f1_score(y_test, y_pred, average='macro')
+    cm = confusion_matrix(y_test, y_pred, labels=labels)
+    results.append({
+        'Model': name,
+        'Accuracy': acc,
+        'Precision (macro)': prec,
+        'Recall (macro)': rec,
+        'F1 (macro)': f1
+        })
+    plt.figure(figsize=(8,6))
+    sbn.heatmap(cm,annot=True,cmap="Blues",xticklabels=labels,yticklabels=labels,cbar=True)
+    plt.title(f"{name}- Confusion Matrix")
+    plt.xlabel("Predicted Step")
+    plt.ylabel("Actual Step")
+    plt.show()
+
+
+results_df=pd.DataFrame(results)
+results_df=results_df.sort_values(by='F1 (macro)', ascending=False).reset_index(drop=True)
+print("\nModel Perfomance Summary:\n", results_df)
 
 # Step 6: Stacked Model Performance
+from sklearn.ensemble import StackingClassifier
+base_estimators = [('svc',clf1),('lr',clf2),('dt',clf3),('rf',clf4)]
+meta_model = LogisticRegression(max_iter=2500, random_state=42)
+
+stacked_model = StackingClassifier(base_estimators,meta_model,cv=5,n_jobs=-1)
+
+stacked_model.fit(X_train, y_train)
+
+y_pred_stack = stacked_model.predict(X_test)
+
+acc_stack = accuracy_score(y_test, y_pred_stack)
+prec_stack = precision_score(y_test,y_pred_stack,average='macro')
+rec_stack = recall_score(y_test, y_pred_stack,average='macro')
+f1_stack = f1_score(y_test, y_pred_stack, average='macro')
+cm_stack = confusion_matrix(y_test, y_pred_stack, labels=labels)
+
+print("\nStacked Model Performance:")
+print(f"\nAccuracy: {acc_stack:.4f}")
+print(f"\nPrecision: {prec_stack:.4f}")
+print(f"\nRecall: {rec_stack:.4f}")
+print(f"\nF1(macro): {f1_stack:.4f}")
+
+plt.figure(figsize=(8,6))
+sbn.heatmap(cm_stack,annot=True,cmap="Blues",xticklabels=labels,yticklabels=labels,cbar=True)
+plt.title("Stacked Confusion Matrix")
+plt.xlabel("Predicted Step")
+plt.ylabel("Actual Step")
+plt.show()
 
 # Step 7: Model Evaluation
+import joblib
 
+best_model = stacked_model
+joblib.dump(best_model,"Best_Step_Classifier.joblib")
+print("Model Saved successfully")
 
+loaded_model = joblib.load("Best_Step_Classifier.joblib")
+print("Model Loaded Successfully")
+new_data = pd.DataFrame([
+    [9.375,3.0625,1.51],
+    [6.995,5.125,0.3875],
+    [0,3.0625,1.93],
+    [9.4,3,1.8],
+    [9.4,3,1.3]], columns=['X','Y','Z'])
 
+predicted_step = loaded_model.predict(new_data)
 
-
+for i, row in new_data.iterrows():
+    print(f"\nPredicted Maintenance Step for coordinates {row.values.tolist()} is: Step {predicted_step[i]}")
