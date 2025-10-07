@@ -267,7 +267,7 @@ print("\nModel Perfomance Summary:\n", results_df)
 from sklearn.ensemble import StackingClassifier
 meta_model = LogisticRegression(max_iter=2500, random_state=42)
 
-stacked_model = StackingClassifier([('lr',clf2),('rf',clf4)],meta_model,cv=5,n_jobs=-1)
+stacked_model = StackingClassifier([('svc',clf1),('rf',clf4)],meta_model,cv=5,n_jobs=-1)
 
 stacked_model.fit(X_train, y_train)
 
