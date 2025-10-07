@@ -24,13 +24,15 @@ for train_index, test_index in splitter.split(df,df['Step']):
 # Step 2: Data Visualization
 
 # Histogram of 'Step' showing class distribution of the training dataset
+plt.figure(figsize=(8,6))
 plt.hist(train_df['Step'],bins=13,edgecolor='black')
 plt.xlabel("Step number")
 plt.ylabel("Frequency")
 plt.title("Distribution of Data points per Step (Training Data)")
 plt.show()
-    
+
 # Scatter plots of all coordinates with Step Numbers
+plt.figure(figsize=(8,6))
 fig, axes = plt.subplots(3, 1,layout='constrained')
 axes[0].scatter(train_df['Step'], train_df['X'], edgecolors="black", color="red")
 axes[0].set_ylabel("X Coordinate")
@@ -42,10 +44,41 @@ axes[2].set_xlabel("Step Number")
 axes[2].set_ylabel("Z Coordinate")
 plt.show()
 
+# Pairwise Relationship of Coordinates by Step
+pair_plot= sbn.pairplot(train_df,
+                        vars=['X','Y','Z'],
+                        hue="Step",
+                        palette=sbn.color_palette("husl",13),
+                        diag_kind='hist')
+pair_plot.fig.suptitle("Pairwise Relationships of (X,Y,Z) Coordinates by Step",y=1.03)
+plt.show()
+
+# 3-D scatter plot
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_subplot(111,projection='3d')
+
+# Scatter plot with color-coding by Step
+sc = ax.scatter(
+    train_df['X'], train_df['Y'], train_df['Z'],
+    c=train_df['Step'],
+    s=30, alpha=0.8
+)
+# Label axes and Title
+ax.set_xlabel('X Coordinate')
+ax.set_ylabel('Y Coordinate')
+ax.set_zlabel('Z Coordinate')
+ax.set_title('3D Scatter Plot of (X, Y, Z) Coordinates by Step')
+
+# Add colorbar as legend
+cbar = fig.colorbar(sc, ax=ax, pad=0.1)
+cbar.set_label('Step Number')
+plt.show()
+
 # Step 3: Correlation Analysis
 
 corr_matrix = train_df.corr(method='pearson')
 print("\nCorrelation Matrix:\n\n", corr_matrix,"\n")
+plt.figure(figsize=(8,6))
 sbn.heatmap(np.abs(corr_matrix))
 plt.title('Pearson Correlation Heatmap')
 plt.show()
@@ -131,9 +164,9 @@ pipe3 = DecisionTreeClassifier(random_state=42)
 param_grid_clf3 = {
         'max_depth': [None,3,7,10],
         'min_samples_split': [2,5,10,20],
-        # 'min_samples_leaf' : [1,2,4,8],
-        # 'criterion': ['gini', 'entropy','log_loss'],
-        # 'max_features': [None,'sqrt', 'log2'],
+        'min_samples_leaf' : [1,2,4,8],
+        'criterion': ['gini', 'entropy','log_loss'],
+        'max_features': [None,'sqrt', 'log2'],
         'class_weight': [None,'balanced']
         }
 # GridSearch Call
@@ -162,9 +195,9 @@ param_rand_clf4 = {
     'n_estimators': randint(100,400),
     'max_depth': randint(5,15),
     'min_samples_split': randint(2,20),
-    # 'min_samples_leaf': randint(1,8),
-    # 'max_features': [None,'sqrt', 'log2'],
-    # 'criterion': ['gini','entropy'],
+    'min_samples_leaf': randint(1,8),
+    'max_features': [None,'sqrt', 'log2'],
+    'criterion': ['gini','entropy'],
     'class_weight': [None,'balanced']
     }
 
@@ -206,44 +239,44 @@ for name, model in models.items():
     y_pred = model.predict(X_test)
     
     acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test,y_pred,average='macro')
-    rec = recall_score(y_test, y_pred,average='macro')
-    f1 = f1_score(y_test, y_pred, average='macro')
+    prec = precision_score(y_test,y_pred,average='weighted')
+    rec = recall_score(y_test, y_pred,average='weighted')
+    f1 = f1_score(y_test, y_pred,average='weighted')
     cm = confusion_matrix(y_test, y_pred, labels=labels)
+    
     results.append({
         'Model': name,
         'Accuracy': acc,
-        'Precision (macro)': prec,
-        'Recall (macro)': rec,
-        'F1 (macro)': f1
+        'Precision': prec,
+        'Recall': rec,
+        'F1 score': f1
         })
+    
     plt.figure(figsize=(8,6))
-    sbn.heatmap(cm,annot=True,cmap="Blues",xticklabels=labels,yticklabels=labels,cbar=True)
+    sbn.heatmap(cm,annot=True,cmap="Reds",xticklabels=labels,yticklabels=labels,cbar=True)
     plt.title(f"{name}- Confusion Matrix")
     plt.xlabel("Predicted Step")
     plt.ylabel("Actual Step")
     plt.show()
 
-
 results_df=pd.DataFrame(results)
-results_df=results_df.sort_values(by='F1 (macro)', ascending=False).reset_index(drop=True)
+results_df=results_df.sort_values(by='F1 score', ascending=False).reset_index(drop=True)
 print("\nModel Perfomance Summary:\n", results_df)
 
 # Step 6: Stacked Model Performance
 from sklearn.ensemble import StackingClassifier
-base_estimators = [('svc',clf1),('lr',clf2),('dt',clf3),('rf',clf4)]
 meta_model = LogisticRegression(max_iter=2500, random_state=42)
 
-stacked_model = StackingClassifier(base_estimators,meta_model,cv=5,n_jobs=-1)
+stacked_model = StackingClassifier([('lr',clf2),('rf',clf4)],meta_model,cv=5,n_jobs=-1)
 
 stacked_model.fit(X_train, y_train)
 
 y_pred_stack = stacked_model.predict(X_test)
 
 acc_stack = accuracy_score(y_test, y_pred_stack)
-prec_stack = precision_score(y_test,y_pred_stack,average='macro')
-rec_stack = recall_score(y_test, y_pred_stack,average='macro')
-f1_stack = f1_score(y_test, y_pred_stack, average='macro')
+prec_stack = precision_score(y_test,y_pred_stack,average='weighted')
+rec_stack = recall_score(y_test, y_pred_stack,average='weighted')
+f1_stack = f1_score(y_test, y_pred_stack, average='weighted')
 cm_stack = confusion_matrix(y_test, y_pred_stack, labels=labels)
 
 print("\nStacked Model Performance:")
@@ -262,7 +295,7 @@ plt.show()
 # Step 7: Model Evaluation
 import joblib
 
-best_model = stacked_model
+best_model = clf2
 joblib.dump(best_model,"Best_Step_Classifier.joblib")
 print("Model Saved successfully")
 
