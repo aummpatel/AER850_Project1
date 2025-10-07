@@ -295,20 +295,20 @@ plt.show()
 # Step 7: Model Evaluation
 import joblib
 
-best_model = clf2
-joblib.dump(best_model,"Best_Step_Classifier.joblib")
+joblib.dump(clf2,"Best_Step_Classifier.joblib")
 print("Model Saved successfully")
 
 loaded_model = joblib.load("Best_Step_Classifier.joblib")
 print("Model Loaded Successfully")
-new_data = pd.DataFrame([
+
+eval_data = pd.DataFrame([
     [9.375,3.0625,1.51],
     [6.995,5.125,0.3875],
     [0,3.0625,1.93],
     [9.4,3,1.8],
     [9.4,3,1.3]], columns=['X','Y','Z'])
 
-predicted_step = loaded_model.predict(new_data)
+predicted_step = loaded_model.predict(eval_data)
 
-for i, row in new_data.iterrows():
+for i, row in eval_data.iterrows():
     print(f"\nPredicted Maintenance Step for coordinates {row.values.tolist()} is: Step {predicted_step[i]}")
